@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Pajak PBJP (PPN, PPh 22 & 23)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Hide spin buttons for number inputs */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+
+  <!-- Dynamic Web App Manifest Injection -->
+  <script>
+    const manifestData = {
+      "name": "Kalkulator Pajak PBJP",
+      "short_name": "PajakPBJP",
+      "description": "Aplikasi Perhitungan PPN 11%, PPh 22, dan PPh 23 Pengadaan Barang/Jasa Pemerintah",
+      "start_url": ".",
+      "display": "standalone",
+      "background_color": "#f8fafc",
+      "theme_color": "#2563eb",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/2921/2921222.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/2921/2921222.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    };
+    const stringManifest = JSON.stringify(manifestData);
+    const blobManifest = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blobManifest);
+    const linkElement = document.createElement('link');
+    linkElement.rel = 'manifest';
+    linkElement.href = manifestURL;
+    document.head.appendChild(linkElement);
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+  <!-- Header / Navbar -->
+  <header class="bg-blue-700 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-blue-800 rounded-lg">
+          <i class="fa-solid fa-calculator text-2xl text-yellow-300"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xl tracking-tight leading-none">Pajak PBJP</h1>
+          <p class="text-xs text-blue-200 mt-1">Kalkulator PPN, PPh 22 & PPh 23 Pengadaan Government</p>
+        </div>
+      </div>
+      
+      <!-- Right Header Section: Logo LuckyIrda & Actions -->
+      <div class="flex items-center space-x-3">
+        <!-- Logo LuckyIrda Emblem -->
+        <div class="flex items-center space-x-2 bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-3 py-1.5 rounded-xl border border-blue-400/30 shadow-inner">
+          <div class="w-7 h-7 rounded-lg bg-yellow-400 text-blue-950 flex items-center justify-center font-black text-sm shadow">
+            <i class="fa-solid fa-wallet text-xs"></i>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-extrabold text-sm tracking-wide bg-gradient-to-r from-white via-yellow-200 to-yellow-400 bg-clip-text text-transparent">LuckyIrda</span>
+            <span class="text-[9px] text-blue-200 leading-none uppercase font-semibold tracking-wider">Apps</span>
+          </div>
+        </div>
+
+        <!-- PWA Install Button & Actions -->
+        <button id="installBtn" class="hidden flex items-center space-x-2 bg-yellow-400 hover:bg-yellow-300 text-blue-950 px-3 py-2 rounded-lg font-semibold text-xs transition duration-200 shadow-sm">
+          <i class="fa-solid fa-download"></i>
+          <span>Install Aplikasi (PC)</span>
+        </button>
+        <button id="infoBtn" onclick="toggleInfoModal()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg text-sm transition" title="Informasi Aturan Pajak">
+          <i class="fa-solid fa-circle-info text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl mx-auto px-4 py-6 w-full flex-grow">
+    
+    <!-- Top Notification Banner for Non-NPWP Alert -->
+    <div id="npwpAlert" class="hidden mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg shadow-sm">
+      <div class="flex items-start">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 mr-3 text-lg"></i>
+        <div class="text-xs sm:text-sm text-amber-800">
+          <span class="font-semibold">Perhatian NPWP:</span> Tanpa NPWP, tarif PPh dikenakan sanksi kenaikan 100% lebih tinggi dari tarif normal (PPh 22 menjadi 3%, PPh 23 menjadi 4%).
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Form Controls -->
+      <div class="lg:col-span-6 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+        <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-blue-600"></i> Parameter Perhitungan
+        </h2>
+
+        <!-- 1. Jenis Transaksi -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">1. Jenis Transaksi / Objek Pajak</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button" onclick="setJenisTransaksi('barang')" id="btn-barang" class="jenis-btn px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 transition text-center">
+              <i class="fa-solid fa-box text-blue-600 text-base"></i>
+              <span>Pembelian Barang</span>
+              <span class="text-[10px] text-slate-400">PPh 22 (1.5%)</span>
+            </button>
+            <button type="button" onclick="setJenisTransaksi('jasa')" id="btn-jasa" class="jenis-btn px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 transition text-center">
+              <i class="fa-solid fa-handshake-angle text-blue-600 text-base"></i>
+              <span>Jasa / Sewa</span>
+              <span class="text-[10px] text-slate-400">PPh 23 (2.0%)</span>
+            </button>
+            <button type="button" onclick="setJenisTransaksi('kustom')" id="btn-kustom" class="jenis-btn px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 transition text-center">
+              <i class="fa-solid fa-gears text-blue-600 text-base"></i>
+              <span>Lainnya / Custom</span>
+              <span class="text-[10px] text-slate-400">Atur Manual</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Mode Perhitungan PPN -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">2. Skema Nilai Input</label>
+          <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+            <button type="button" onclick="setModePPN('include')" id="mode-include" class="mode-btn py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 transition text-center">Include PPN</button>
+            <button type="button" onclick="setModePPN('exclude')" id="mode-exclude" class="mode-btn py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 transition text-center">Exclude PPN</button>
+            <button type="button" onclick="setModePPN('dpp')" id="mode-dpp" class="mode-btn py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 transition text-center">Langsung DPP</button>
+          </div>
+        </div>
+
+        <!-- 3. Input Nominal -->
+        <div>
+          <label for="inputNominal" id="labelNominal" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Nilai Transaksi (Kotor / Gross)</label>
+          <div class="relative rounded-xl shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <span class="text-slate-400 font-bold text-sm">Rp</span>
+            </div>
+            <input type="text" id="inputNominal" placeholder="0" oninput="formatAndCalculate()" class="block w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-800 text-base transition">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Ketik nilai rupiah nominal pengadaan.</p>
+        </div>
+
+        <!-- 4. Kepemilikan NPWP -->
+        <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-id-card text-blue-600 text-lg"></i>
+            <div>
+              <div class="text-xs font-bold text-slate-700">Penyedia Memiliki NPWP / NIK Tervalidasi</div>
+              <div class="text-[11px] text-slate-500">Non-NPWP dikenakan kenaikan tarif PPh 100%</div>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="hasNPWP" checked onchange="calculate()" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        <!-- Options Custom Rate (Appears when Custom is selected) -->
+        <div id="customRatesSection" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <div class="text-xs font-bold text-slate-700 border-b border-slate-200 pb-1">Pengaturan Tarif Kustom (%)</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Tarif PPN (%)</label>
+              <input type="number" id="customPPN" value="11" step="0.1" oninput="calculate()" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Tarif PPh (%)</label>
+              <input type="number" id="customPPh" value="1.5" step="0.1" oninput="calculate()" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800">
+            </div>
+          </div>
+        </div>
+
+        <button type="button" onclick="resetForm()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-1">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Reset Form</span>
+        </button>
+      </div>
+
+      <!-- Right Column: Calculation Results -->
+      <div class="lg:col-span-6 bg-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-green-400"></i> Rincian Perhitungan
+            </h2>
+            <span id="badgeJenis" class="px-2.5 py-1 bg-blue-600 text-blue-100 rounded-full text-[10px] font-bold tracking-wide uppercase">Pembelian Barang</span>
+          </div>
+
+          <!-- Component Breakdown -->
+          <div class="space-y-3 text-xs sm:text-sm">
+            <!-- Nilai Bruto/Input -->
+            <div class="flex justify-between items-center py-1">
+              <span class="text-slate-400">Nilai Transaksi Input</span>
+              <span id="resNominalInput" class="font-semibold text-slate-200">Rp 0</span>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- DPP -->
+            <div class="flex justify-between items-center py-1">
+              <div>
+                <span class="font-bold text-slate-100">DPP (Dasar Pengenaan Pajak)</span>
+                <p class="text-[10px] text-slate-400">Dasar perhitungan PPN & PPh</p>
+              </div>
+              <span id="resDPP" class="font-bold text-yellow-400 text-base sm:text-lg">Rp 0</span>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- PPN -->
+            <div class="flex justify-between items-center py-1">
+              <div>
+                <span class="text-slate-300 font-medium">PPN <span id="labelTarifPPN">(11%)</span></span>
+                <p class="text-[10px] text-slate-400">Dipungut / Disetor</p>
+              </div>
+              <span id="resPPN" class="font-semibold text-slate-200">Rp 0</span>
+            </div>
+
+            <!-- PPh -->
+            <div class="flex justify-between items-center py-1">
+              <div>
+                <span class="text-slate-300 font-medium"><span id="labelJenisPPh">PPh 22</span> <span id="labelTarifPPh">(1.5%)</span></span>
+                <p class="text-[10px] text-slate-400">Dipotong dari Penyedia</p>
+              </div>
+              <span id="resPPh" class="font-semibold text-slate-200">Rp 0</span>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Total Pajak -->
+            <div class="flex justify-between items-center py-1.5 bg-slate-800/60 px-3 rounded-lg border border-slate-700/50">
+              <span class="text-slate-300 font-medium">Total Beban Pajak (PPN + PPh)</span>
+              <span id="resTotalPajak" class="font-bold text-amber-400">Rp 0</span>
+            </div>
+          </div>
+
+          <!-- Highlight Output Netto -->
+          <div class="mt-6 p-4 bg-emerald-950/80 border border-emerald-500/30 rounded-xl space-y-1">
+            <span class="text-xs uppercase tracking-wider font-semibold text-emerald-400">Jumlah Netto Diterima Rekanan/Penyedia</span>
+            <div id="resNetto" class="text-2xl sm:text-3xl font-extrabold text-emerald-300">Rp 0</div>
+            <p class="text-[11px] text-emerald-400/80">Nilai fisik pencairan setelah dipotong PPh (Pembayaran Tagihan).</p>
+          </div>
+        </div>
+
+        <!-- Action Copy -->
+        <div class="mt-6">
+          <button type="button" onclick="copySummary()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/40">
+            <i class="fa-solid fa-copy"></i>
+            <span>Salin Ringkasan Perhitungan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-8 text-center text-xs text-slate-500">
+    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div>Kalkulator Pajak PBJP &copy; 2026 - Siap pakai untuk Bendahara / PPK / Penyedia</div>
+      <div class="text-[11px] text-slate-400">Aturan Dasar: UU Harmonisasi Peraturan Perpajakan (HPP)</div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center space-x-2 text-xs z-50">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg">Teks berhasil disalin!</span>
+  </div>
+
+  <!-- Information Modal -->
+  <div id="infoModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden border border-slate-100 animate-fadeIn">
+      <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-book-open"></i> Ringkasan Aturan Pajak PBJP
+        </h3>
+        <button onclick="toggleInfoModal()" class="text-blue-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="p-5 space-y-3 text-xs text-slate-600 max-h-[70vh] overflow-y-auto">
+        <div>
+          <h4 class="font-bold text-slate-800">1. PPN (Pajak Pertambahan Nilai)</h4>
+          <p>Tarif standar PPN sesuai UU HPP adalah <strong>11%</strong> dari DPP (Dasar Pengenaan Pajak).</p>
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-800">2. PPh Pasal 22 (Pembelian Barang)</h4>
+          <p>Dikenakan atas pembelian barang oleh Bendahara Pemerintah sebesar <strong>1,5%</strong> dari DPP.</p>
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-800">3. PPh Pasal 23 (Jasa / Sewa)</h4>
+          <p>Dikenakan atas imbalan jasa atau sewa (selain tanah/bangunan) sebesar <strong>2,0%</strong> dari DPP.</p>
+        </div>
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
+          <h4 class="font-bold">Sanksi Tanpa NPWP:</h4>
+          <p>Penyedia yang tidak memiliki NPWP dikenakan tarif 100% lebih tinggi:</p>
+          <ul class="list-disc list-inside mt-1">
+            <li>PPh 22: 1.5% &rarr; <strong>3.0%</strong></li>
+            <li>PPh 23: 2.0% &rarr; <strong>4.0%</strong></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bg-slate-50 p-3 text-right border-t border-slate-100">
+        <button onclick="toggleInfoModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic & Service Worker Registration -->
+  <script>
+    // State management
+    let currentJenis = 'barang'; // 'barang', 'jasa', 'kustom'
+    let currentMode = 'include'; // 'include', 'exclude', 'dpp'
+
+    // Init state on load
+    window.onload = function() {
+      setJenisTransaksi('barang');
+      setModePPN('include');
+      calculate();
+      registerServiceWorker();
+    };
+
+    // Set Transaksi Type
+    function setJenisTransaksi(jenis) {
+      currentJenis = jenis;
+      
+      // Update UI active states
+      document.querySelectorAll('.jenis-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-bold');
+        btn.classList.add('border-slate-200', 'text-slate-700');
+      });
+
+      const activeBtn = document.getElementById(`btn-${jenis}`);
+      if (activeBtn) {
+        activeBtn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-bold');
+      }
+
+      // Show/Hide custom inputs
+      const customRatesSection = document.getElementById('customRatesSection');
+      if (jenis === 'kustom') {
+        customRatesSection.classList.remove('hidden');
+      } else {
+        customRatesSection.classList.add('hidden');
+      }
+
+      calculate();
+    }
+
+    // Set Mode Perhitungan (Include, Exclude, DPP)
+    function setModePPN(mode) {
+      currentMode = mode;
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-blue-700', 'shadow-sm', 'font-bold');
+        btn.classList.add('text-slate-600');
+      });
+
+      const activeModeBtn = document.getElementById(`mode-${mode}`);
+      if (activeModeBtn) {
+        activeModeBtn.classList.add('bg-white', 'text-blue-700', 'shadow-sm', 'font-bold');
+      }
+
+      // Update Label Nominal Input
+      const labelNominal = document.getElementById('labelNominal');
+      if (mode === 'include') {
+        labelNominal.innerText = 'Nilai Transaksi (Include PPN)';
+      } else if (mode === 'exclude') {
+        labelNominal.innerText = 'Nilai Barang/Jasa (Exclude PPN)';
+      } else {
+        labelNominal.innerText = 'Nilai DPP (Dasar Pengenaan Pajak)';
+      }
+
+      calculate();
+    }
+
+    // Number formatting helper for display
+    function formatRupiah(number) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+      }).format(number);
+    }
+
+    // Format input field with thousands separators
+    function formatAndCalculate() {
+      const inputEl = document.getElementById('inputNominal');
+      let rawVal = inputEl.value.replace(/\D/g, '');
+      
+      if (rawVal) {
+        inputEl.value = parseInt(rawVal, 10).toLocaleString('id-ID');
+      } else {
+        inputEl.value = '';
+      }
+
+      calculate();
+    }
+
+    // Main calculation engine
+    function calculate() {
+      const rawInput = document.getElementById('inputNominal').value.replace(/\D/g, '');
+      const nominalInput = parseFloat(rawInput) || 0;
+      const hasNPWP = document.getElementById('hasNPWP').checked;
+
+      // Toggle alert banner for NPWP
+      const npwpAlert = document.getElementById('npwpAlert');
+      if (!hasNPWP) {
+        npwpAlert.classList.remove('hidden');
+      } else {
+        npwpAlert.classList.add('hidden');
+      }
+
+      // Determine Tax Rates
+      let tarifPPNPercent = 11;
+      let tarifPPhPercent = 1.5;
+      let namaPPh = 'PPh 22';
+
+      if (currentJenis === 'barang') {
+        tarifPPNPercent = 11;
+        tarifPPhPercent = hasNPWP ? 1.5 : 3.0; // 100% higher if non-NPWP
+        namaPPh = 'PPh 22';
+      } else if (currentJenis === 'jasa') {
+        tarifPPNPercent = 11;
+        tarifPPhPercent = hasNPWP ? 2.0 : 4.0; // 100% higher if non-NPWP
+        namaPPh = 'PPh 23';
+      } else if (currentJenis === 'kustom') {
+        const customPPNInput = parseFloat(document.getElementById('customPPN').value) || 0;
+        const customPPhInput = parseFloat(document.getElementById('customPPh').value) || 0;
+        tarifPPNPercent = customPPNInput;
+        tarifPPhPercent = hasNPWP ? customPPhInput : (customPPhInput * 2);
+        namaPPh = 'PPh Kustom';
+      }
+
+      // Calculate DPP and PPN based on selection mode
+      let dpp = 0;
+      let ppn = 0;
+
+      if (currentMode === 'include') {
+        // Formulasi Nilai Include PPN = DPP + (DPP * tarifPPN/100) = DPP * (1 + tarifPPN/100)
+        dpp = nominalInput / (1 + (tarifPPNPercent / 100));
+        ppn = dpp * (tarifPPNPercent / 100);
+      } else if (currentMode === 'exclude') {
+        dpp = nominalInput;
+        ppn = dpp * (tarifPPNPercent / 100);
+      } else if (currentMode === 'dpp') {
+        dpp = nominalInput;
+        ppn = dpp * (tarifPPNPercent / 100);
+      }
+
+      // Calculate PPh (dikenakan dari DPP)
+      const pph = dpp * (tarifPPhPercent / 100);
+      const totalPajak = ppn + pph;
+
+      // Netto yang diterima penyedia (Pembayaran tagihan dikurangi PPh)
+      // Dalam transaksi bendahara: PPN biasanya dipungut disetor bendahara/penyedia, namun Hak Penyedia bersih = DPP - PPh (atau Total Transaksi Include PPN - PPN - PPh)
+      const netto = dpp - pph;
+
+      // Render Outputs to UI
+      document.getElementById('badgeJenis').innerText = currentJenis === 'barang' ? 'Pembelian Barang' : (currentJenis === 'jasa' ? 'Jasa / Sewa' : 'Kustom');
+      document.getElementById('resNominalInput').innerText = formatRupiah(nominalInput);
+      document.getElementById('resDPP').innerText = formatRupiah(dpp);
+      document.getElementById('resPPN').innerText = formatRupiah(ppn);
+      document.getElementById('resPPh').innerText = formatRupiah(pph);
+      document.getElementById('resTotalPajak').innerText = formatRupiah(totalPajak);
+      document.getElementById('resNetto').innerText = formatRupiah(netto);
+
+      // Render Dynamic Labels
+      document.getElementById('labelTarifPPN').innerText = `(${tarifPPNPercent}%)`;
+      document.getElementById('labelJenisPPh').innerText = namaPPh;
+      document.getElementById('labelTarifPPh').innerText = `(${tarifPPhPercent}%${!hasNPWP ? ' Non-NPWP' : ''})`;
+    }
+
+    // Reset Form
+    function resetForm() {
+      document.getElementById('inputNominal').value = '';
+      document.getElementById('hasNPWP').checked = true;
+      document.getElementById('customPPN').value = '11';
+      document.getElementById('customPPh').value = '1.5';
+      setJenisTransaksi('barang');
+      setModePPN('include');
+    }
+
+    // Copy Summary Text
+    function copySummary() {
+      const dpp = document.getElementById('resDPP').innerText;
+      const ppn = document.getElementById('resPPN').innerText;
+      const pph = document.getElementById('resPPh').innerText;
+      const totalPajak = document.getElementById('resTotalPajak').innerText;
+      const netto = document.getElementById('resNetto').innerText;
+      const jenis = document.getElementById('badgeJenis').innerText;
+      const inputVal = document.getElementById('resNominalInput').innerText;
+      const npwpStatus = document.getElementById('hasNPWP').checked ? 'Ada NPWP' : 'Tanpa NPWP (Denda 100%)';
+      const labelPPh = document.getElementById('labelJenisPPh').innerText;
+      const tarifPPh = document.getElementById('labelTarifPPh').innerText;
+
+      const summaryText = 
+`--- RINGKASAN PERHITUNGAN PAJAK PBJP ---
+Jenis Transaksi : ${jenis} (${npwpStatus})
+Nilai Input     : ${inputVal}
+
+1. DPP (Dasar Pengenaan Pajak) : ${dpp}
+2. PPN Dipungut                : ${ppn}
+3. ${labelPPh} ${tarifPPh}         : ${pph}
+----------------------------------------
+Total Beban Pajak (PPN + PPh)  : ${totalPajak}
+JUMLAH NETTO DITERIMA REKANAN : ${netto}
+----------------------------------------
+Dihitung via Aplikasi Kalkulator Pajak PBJP`;
+
+      // Copy using legacy execCommand as safe iframe fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = summaryText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Ringkasan perhitungan berhasil disalin!");
+      } catch (err) {
+        showToast("Gagal menyalin ringkasan.");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Toast Notification logic
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Info Modal Toggle
+    function toggleInfoModal() {
+      const modal = document.getElementById('infoModal');
+      if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    // Register Inline Service Worker for PWA Capability
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          const CACHE_NAME = 'pajak-pbjp-v1';
+          self.addEventListener('install', (e) => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(clients.claim());
+          });
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(
+              fetch(e.request).catch(() => caches.match(e.request))
+            );
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl)
+          .then(reg => console.log('PWA Service Worker registered:', reg))
+          .catch(err => console.log('Service Worker registration failed:', err));
+      }
+    }
+
+    // Handle PWA Install Prompt for PC/Desktop
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      deferredPrompt = e;
+      // Show desktop install button
+      installBtn.classList.remove('hidden');
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the PWA install prompt');
+        }
+        deferredPrompt = null;
+        installBtn.classList.add('hidden');
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.classList.add('hidden');
+      showToast('Aplikasi berhasil diinstall di PC Anda!');
+    });
+  </script>
+</body>
+</html>
